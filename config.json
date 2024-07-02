@@ -88,8 +88,8 @@
 			  ],"default":"flex"
 			},
 	"pi_pins" : {
-		"gsm_TX" : 0,
-		"gsm_RX" : 1,
+		"gsm_TX" : 15,
+		"gsm_RX" : 14,
 		"gpio_ir" : 4,
 		"gpio_magnet" : 18,
 		"gpio_magnet_delay": 5,
@@ -100,14 +100,14 @@
 		"gpio_oled_scl1" : 3,
 		"gpio_oled_sda2" : 20,
 		"gpio_oled_scl2" : 21,
-		"gpio_servo_magnet" : 20,
-		"gpio_servo_gate" : 22,
+		"gpio_servo_magnet" : 22,
+		"gpio_servo_gate" : 27,
 		"gpio_servo_magnet_angle" : 90,
 		"gpio_servo_gate_angle" : 90,
 		"gpio_servo_magnet_delay" : 5,
 		"gpio_servo_gate_delay" : 5,
-		"keypad_rows" : [15,14,13,12],
-		"keypad_cols" : [11,10,9,8],
-		"buzzer" : 4
+		"keypad_rows" : [23,24,25,8],
+		"keypad_cols" : [7,12,16,20],
+		"buzzer" : 21
 	}
 }

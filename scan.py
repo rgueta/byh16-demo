@@ -1,7 +1,7 @@
 import cv2 # type: ignore
 from pyzbar import pyzbar # type: ignore
 from time import sleep
-import requests
+import requests # type: ignore
 import json
 import pathlib
 import logging
@@ -10,15 +10,17 @@ import pytz # type: ignore
 import os
 import sys
 import threading
+import gate
+import magnet
 
 import Adafruit_GPIO.SPI as SPI # type: ignore
 import Adafruit_SSD1306 # type: ignore
 
 import RPi.GPIO as GPIO # type: ignore
 
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+from PIL import Image # type: ignore
+from PIL import ImageDraw # type: ignore
+from PIL import ImageFont # type: ignore
 
 #----- logger section -----
 logging.basicConfig(filename='history.log', level=logging.ERROR, 
@@ -264,10 +266,6 @@ def decode_qr(frame):
                 sleep(0.5)
                 GPIO.output(buzzer_pin,GPIO.LOW)
 
-                if qr_data == password:
-                    restart()
-                    return
-
                 screen_saver = 0
                 print("{}.- Data: '{}' | Time: '{}' | Acc-code: '{}' | Diff: '{}' "
                     .format(str(acc),f"{qr_data:^6}", datetime.now(pytz.timezone(tzone)), acc_code, str(diff_time)))
@@ -277,13 +275,29 @@ def decode_qr(frame):
 def activeCode(code):
     global last_capture
     last_capture = datetime.now()
-    curl = url + api_valid_code + code + '/' + usr
     try:
+        if code == 'gate':
+            clear()
+            showMsg('Bienvenido')
+            gate.fullCycle(4)
+            showMsg(namePlace)
+            return True
+        elif code == 'magnet':
+            clear()
+            showMsg('Bienvenido')
+            magnet.fullCycle(4)
+            showMsg(namePlace)
+            return True
+        elif code == 'boot':
+            restart()
+            return True
+        
+        curl = url + api_valid_code + code + '/' + usr
         res = requests.get(curl)
         if res.status_code == 200:
             clear()
             showMsg('Bienvenido')
-            sleep(5)
+            gate.fullCycle(4)
             showMsg(namePlace)
             return True
         else:
@@ -542,7 +556,7 @@ def PollKeypad():
                     
                     sleep(0.3)
             GPIO.output(r, GPIO.HIGH)
-    
+
 try:
     initial()
     clear()
