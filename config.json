@@ -7,7 +7,10 @@
 		"show_code": true,
 		"pwdRST": "123456",
 		"settingsCode" : "1324",
-		"timezone": "US/Pacific"
+		"timezone": "US/Pacific",
+		"rotate":true,
+		"demo" : true,
+		"openByCode" : "gate", ">>> Comment, alertate values":"magnet or gate"
         
     },
     "api":{
@@ -47,7 +50,7 @@
         "width":128,
 		"height":32,
         "_comment2":"top items are use for oled type screen",
-		"display_type":"lcd.16x2",
+		"display_type":"oled.128x32",
 		"image64" : "./assets/bytheg_128x128.png",
 		"image32" : "./assets/Bytheg128.png",
 		"header_icon_font_" : "fontawesome-webfont.ttf",
