@@ -8,6 +8,7 @@
 		"pwdRST": "123456",
 		"settingsCode" : "1324",
 		"timezone": "US/Pacific",
+		"admin_sim":"+526641752182",
 		"rotate":true,
 		"demo" : true,
 		"openByCode" : "gate", ">>> Comment, alertate values":"magnet or gate"
@@ -37,6 +38,7 @@
 
 	},
     "screen" : {
+		"sc_sever_time":4000,
         "rs":26,
         "en":19,
         "d4":13,
@@ -91,8 +93,8 @@
 			  ],"default":"flex"
 			},
 	"pi_pins" : {
-		"gsm_TX" : 15,
-		"gsm_RX" : 14,
+		"gsm_TX" : 14,
+		"gsm_RX" : 15,
 		"gpio_ir" : 4,
 		"gpio_magnet" : 18,
 		"gpio_magnet_delay": 5,

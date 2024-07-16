@@ -53,9 +53,9 @@ if display_type == 'lcd.16x2':
     disp = Adafruit_CharLCD(rs=rs, en=en, d4=d4, d5=d5, d6=d6, d7=d7,
                         cols=cols, lines=lines, backlight=backlight)
 elif display_type == 'oled.128x32':
-    from PIL import Image
-    from PIL import ImageDraw
-    from PIL import ImageFont
+    from PIL import Image # type: ignore
+    from PIL import ImageDraw # type: ignore
+    from PIL import ImageFont # type: ignore
     import Adafruit_GPIO.SPI as SPI # type: ignore
     import Adafruit_SSD1306 # type: ignore
     RST = None     # on the PiOLED this pin isnt used
@@ -66,6 +66,7 @@ elif display_type == 'oled.128x32':
 
     # 128x32 display with hardware I2C:
     disp = Adafruit_SSD1306.SSD1306_128_32(rst=RST)
+    disp.rotation = 2
 
     # Initialize library.
     disp.begin()
@@ -120,6 +121,10 @@ namePlace = config['app']['NamePlace']
 password = config['app']['pwd']
 buzzer_pin = config['pi_pins']['buzzer']
 display_type = config['screen']['display_type']
+admin_sim = config['app']['admin_sim'].split(',')
+apn = config['sim']['apn']
+incoming_calls = config['sim']['incoming_calls']
+sc_saver_time = config['screen']['sc_sever_time']
 
 #decode and code verification
 acc = 0
@@ -127,6 +132,7 @@ acc_code = 0
 first_code = ''
 last_capture = datetime.now()
 settingsCode = ''
+timestamp = ''
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
@@ -190,6 +196,40 @@ draw.rectangle((0,0,width,height), outline=0, fill=0)
 
 def initial():
     showVersion('ver. ' + version_app)
+
+
+def init_gsm():
+    cmd = ''
+    apn_usr = config['sim']['APN_USER']
+    apn_pwd = config['sim']['APN_PWD']
+
+    cmd = 'AT+CSTT="%s","%s","%s"\r' % (apn,apn_usr,apn_pwd)
+    gsm.write(cmd.encode())
+    sleep(2)
+    
+    cmd = 'AT+SAPBR=3,1,"Contype","GPRS"\r'
+    gsm.write(cmd.encode())
+    sleep(2)
+
+    cmd = 'AT+SAPBR=3,1,"APN","%s"\r' % apn
+    gsm.write(cmd.encode())
+    sleep(1)
+
+    cmd = 'AT+CMGF=1\r'
+    gsm.write(cmd.encode())  # Select Message format as Text mode
+    sleep(1)
+
+    cmd = 'AT+CNMI=2,2,0,0,0\r'
+    gsm.write(cmd.encode())  # New live SMS Message Indications
+    sleep(1)
+
+    # gsm.write('AT+CGATT?\r\n')
+    # utime.sleep(1)
+
+    if(not incoming_calls):
+        cmd = 'AT+GSMBUSY=1\r'
+        gsm.write(cmd.encode())
+        sleep(1)
 
 def showVersion(msg):
     clear()
@@ -323,28 +363,25 @@ def changeSetting(value):
 
 def sendSMS(msg, type = 'n', time = 1, trigger = 0):
     global admin_sim
+    cmd = ''
     for i, item in enumerate(admin_sim):
         if debugging:
             print('sent msg to: ' + item)
         sleep(1)
         if type == 'n':
-            # gsm.write('AT+CMGS="' + item + '"\r\n')
-            # utime.sleep(time)
-            # gsm.write(str(msg) + "\r\n")
-            # gsm.write('\x1A')  # Enable to send SMS
-            # utime.sleep(1)
-
-
-            gsm.write('AT+CMGS="' + item + '"\r')
+            cmd = 'AT+CMGS="' + item + '"\r'
+            gsm.write(cmd.encode())
             sleep(time)
-            gsm.write(str(msg) + "\r\x1A")  # '\x1A' Enable to send SMS
-            # gsm.write('\x1A')  # Enable to send SMS
-            sleep(1)
+            cmd = str(msg) + "\r\x1A"
+            gsm.write(cmd.encode())  # '\x1A' Enable to send SMS
+            sleep(time)
 
         else: # write to memory
-            gsm.write('AT+CMGW="' + item +  '"\r')
+            cmd = 'AT+CMGW="' + item +  '"\r'
+            gsm.write(cmd.encode())
             sleep(time)
-            gsm.write(str(msg) + "\r\x1A")
+            cmd = str(msg) + "\r\x1A"
+            gsm.write(cmd.encode())
             sleep(time)
 
 def isLocked(sim):
@@ -427,10 +464,14 @@ def isAdmin(sim):
 def signal_Status(titulo):
     global gsm_status
     gsm_status = []
+    cmd = ''
     gsm_status.append({'Event':titulo})
-    gsm.write('AT+CSQ\r')
+
+    cmd = 'AT+CSQ\r'
+    gsm.write(cmd.encode())
     sleep(0.7)
-    gsm.write('AT+CBC\r')
+    cmd = 'AT+CBC\r'
+    gsm.write(cmd.encode())
     sleep(0.7)
 
 def str_to_bool(s):
@@ -530,27 +571,16 @@ def cleanCodes(type, code):
     global active_codes
     active_codes = {"codes": []}
 
-    now = time.time() / 86400  # create timestamp from rtc local
-    # now = int(utime.mktime(rtc.datetime()))
+    now = datetime.now()
     jcodes = open('codes.json')
     code_list = json.loads(jcodes.read())
     jcodes.close()
 
     for i, item in enumerate(code_list['codes']):
         if type == 1:
-            dtcode = (time.mktime((2000 + int(item['date'][2:4]), int(item['date'][5:7]),
-                                  int(item['date'][8:10]), int(item['date'][11:13]),
-                                  int(item['date'][14:16]), int(item['date'][17:19]),
-                                  0,0))) / 86400  # type: ignore
+            dtcode = datetime.fromisoformat(item['date']) # type: ignore
 
             if dtcode < now :
-            # instead of days_between check it out
-            # days_between = daysBetween(tupleDateFROM_ISO(item['date']), tupleToday)
-            # print('code --> ' + item['code'] +
-            #       ', date: ' + item['date'] + ', daysBetweeb --> ', days_between)
-            # if days_between < 0:
-
-                # del code_list['codes'][i]
                 if debugging:
                     print('Code deleted ----> ', item['code'])
             else:
@@ -566,7 +596,7 @@ def cleanCodes(type, code):
     f = open("codes.json", "w")
     json.dump(active_codes, f)
     f.close()
-    ShowMainFrame()
+    showMsg("headerControl","Codigo: ")
 
 def decode_qr(frame):
     #acc increment calling value
@@ -863,7 +893,7 @@ def PollKeypad():
                             draw.text((3, 18), "Codigo incompleto    ", font=font, fill=255)
                             disp.image(image)
                             disp.display()
-                            song('fail')
+                            # song('fail')
                             sleep(3)
                             printHeader()
                             draw.text((3, 18), "Codigo: {}             ".format(code), font=font, fill=255)
@@ -898,23 +928,36 @@ def PollKeypad():
 
                     if debugging:
                         print("Codigo: " + code)
-                    
+                
                     sleep(0.3)
+            else:
+                if screen_saver/1000 <= sc_saver_time:
+                    screen_saver += 1
+                    if screen_saver/1000 == sc_saver_time:
+                        screenSaver()
+
+
             GPIO.output(r, GPIO.HIGH)
 
 def simResponse():
     global gsm
+    global debugging
     header = ''
+    cmd = ''
+    msg = ''
+    response = ''
+
     while True:
         response = gsm.readline() # type: ignore
         response = response.decode("utf-8")
         response = response[0:-2]
+
         if ',' in response:
             header = response.split(',')
-
+        
         if debugging:
-            print(response)
-            
+            print('response: ',response)
+
         if 'ERROR' in response:
             print('simResponse,Error detected: ' + response)
         elif '+CREG:' in response:  # Get sim card status
@@ -935,14 +978,14 @@ def simResponse():
             if debugging:
                 print('GSM timestamp --> ' + timestamp)
                 print(('Params --> ' ,timestamp[0:2],timestamp[3:5],
-                       timestamp[6:8],timestamp[9:11],timestamp[12:14],
-                       timestamp[15:17]))
+                        timestamp[6:8],timestamp[9:11],timestamp[12:14],
+                        timestamp[15:17]))
 
                 print('rtc_datetime --> ' + str(rtc.datetime()))
 
             rtc.datetime((int('20' + timestamp[0:2]), int(timestamp[3:5]),
-                          int(timestamp[6:8]), 0, int(timestamp[9:11]),
-                          int(timestamp[12:14]), int(timestamp[15:17]), 0))
+                            int(timestamp[6:8]), 0, int(timestamp[9:11]),
+                            int(timestamp[12:14]), int(timestamp[15:17]), 0))
             timestamplocal = timestamp.split(',')[0].split('/')
             tupleToday = (int(timestamplocal[0]), int(timestamplocal[1]), int(timestamplocal[2]))
             Today = timestamplocal[0] + '.' + timestamplocal[1] + '.' + timestamplocal[2]
@@ -954,7 +997,9 @@ def simResponse():
                 senderSim = senderSim[-10:]
 
             # Line to get SMS text
-            # response = str(gsm.readline(), encoding).rstrip('\r\n')
+            response = gsm.readline() # type: ignore
+            response = response.decode("utf-8")
+            response = response[0:-2]
 
             role = jsonTools.updJson('r', 'restraint.json','sim', senderSim,'',True,'role')
             # Check extrange sender----------------------------------
@@ -965,7 +1010,7 @@ def simResponse():
 
                 #  --- send extrage info to admin  -------
                 sendSMS('Extrange sim: ' + senderSim + ' \n,cmd: ' + response
-                         + '\n, at: ' + timestamp )
+                            + '\n, at: ' + timestamp )
                 if debugging:
                     print('Extrange attempted')
                     showMsg('Extrange attempted')
@@ -988,10 +1033,6 @@ def simResponse():
             else:
                 msg = response.split(",")
 
-            if debugging:
-                print('GSM response: ' + response)
-                print('sender Sim --> ',senderSim)
-                
             # receiving codes ------------------
             if msg[0].strip() == 'codigo':
                 msg[3] = msg[3].rstrip('\r\n')
@@ -1008,10 +1049,11 @@ def simResponse():
                 # if not demo:
                 if debugging:
                     print('Abriendo', msg)
+                    
                 if 'peatonal' in msg[1]:
-                    magnet.Activate()
+                    magnet.fullCycle(4)
                 elif 'vehicular' in msg[1]:
-                    gate.Activate()
+                    gate.fullCycle(4)
                 return
             
         # region admin or neighborAdmin commands section -------------------------------------
@@ -1026,24 +1068,24 @@ def simResponse():
                 
                 elif msg[0].strip() == 'updSim':
                     jsonTools.updJson('updSim', 'restraint.json','sim', msg[1],
-                                       msg[2], False,'',getLocalTimestamp())
+                                        msg[2], False,'',getLocalTimestamp())
                     return
 
                 elif msg[0].strip() == 'lock':
                     jsonTools.updJson('updStatus', 'restraint.json','sim', msg[3],
-                                       'lock', False,'',getLocalTimestamp())
+                                        'lock', False,'',getLocalTimestamp())
                     updRestraintList()
                     return
                 
                 elif msg[0].strip() == 'unlock':
                     jsonTools.updJson('updStatus','restraint.json','sim',msg[3],
-                                      'unlock',False,'',getLocalTimestamp())
+                                        'unlock',False,'',getLocalTimestamp())
                     updRestraintList()
                     return
                 
                 elif msg[0].strip() == 'delete':
                     jsonTools.updJson('delete','restraint.json','id',msg[1],
-                                      '',False,'',getLocalTimestamp())
+                                        '',False,'',getLocalTimestamp())
                     updRestraintList()
                     return
                 
@@ -1055,7 +1097,7 @@ def simResponse():
                 if debugging:
                     print('no privileges', msg)
             
-                
+
         #endregion admin  -------------------------------------------------
 
         #region super admin ------------------------------------------
@@ -1120,7 +1162,7 @@ def simResponse():
                     # ShowMainFrame()
                     # return    
         #endregion super andmin--------------------
-    
+
 
         elif '+CSQ:' in response:
             pos = response.index(':')
@@ -1135,7 +1177,7 @@ def simResponse():
         elif '+CBC:' in response:
             pos = response.index(':')
             response_return = response[pos + 2: (pos + 2) + 9]
- 
+
             if sendStatus:
                 sendStatus = False
                 gsm_status.append({'Local': getLocalTimestamp()})
@@ -1168,66 +1210,87 @@ def simResponse():
             showMsg('Temp high')
             if debugging:
                 print('GSM Module Temperature high !')
-            gsm.write('AT+CBC\r')
+            cmd = 'AT+CBC\r'
+            gsm.write(cmd.encode())
         elif 'UNDER-VOLTAGE' in response:  # 3.48v
             sendStatus = True
             showMsg('Temp low')
             if debugging:
                 print('GSM Module Temperature low')
-            gsm.write('AT+CBC\r')
+            cmd = 'AT+CBC\r'
+            gsm.write(cmd.encode())
     # except NameError:
     #     print('Error -->', NameError)
     #     pass
-    if not debugging: 
-        led25.value(0)
+    # if not debugging: 
+    #     led25.value(0)
+
+    # raise Exception('Eception from thread simResponse')  
+def main():
+    try:
+        initial()
+        init_gsm()
+        clear()
+        showMsg(namePlace)
+
+        cap = cv2.VideoCapture(0)
+        sleep(2)
+        # Monitor for screen saver
+        # thM = threading.Thread(target=monitor)
+        # thM.start()
+
+        # catch keypas pressed
+        thKeypad = threading.Thread(target=PollKeypad)
+
+        #catch sim Response
+        thSim = threading.Thread(target=simResponse)
+        
+        thKeypad.start()
+        thSim.start()
+        sleep(2)
+
+        print('both threading have finished execution')
+
+        
+
+        # while cap.isOpened():
+        while True:
+
+            sleep(0.1)
+            # Leer un frame de la cámara
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            # Decodificar QR en el frame
+            frame = decode_qr(frame)
+
+            # Salir con la tecla 'q'
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
 
 
-try:
-    initial()
-    clear()
-    showMsg(namePlace)
+    except KeyboardInterrupt:
+        print('\nAdios.!')
+        GPIO.cleanup()
+        clear()
 
-    # Monitor for screen saver
-    thM = threading.Thread(target=monitor)
-    thM.start()
+    except ValueError as errValue:
+        print("Value Not valid, Try again...", errValue)
 
-    # catch keypas pressed
-    thK = threading.Thread(target=PollKeypad)
-    thK.start()
+    except OSError:  # Open failed
+        print('Error--> ', OSError)
+        logger.error(OSError)
+    except SystemExit as e:
+        logger.error(e)
+        os._exit()
+    except sys as e:
+        print('Exception: ', e)
+    finally:
+        # Liberar la cámara y cerrar todas las ventanas
+        cap.release()
+        cv2.destroyAllWindows()
+        sys.exit()
 
-    #catch sim Response
-    thS = threading.Thread(target=simResponse)
-    thS.start()
-
-    cap = cv2.VideoCapture(0)
-    while cap.isOpened():
-
-        # Leer un frame de la cámara
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Decodificar QR en el frame
-        frame = decode_qr(frame)
-
-        # Salir con la tecla 'q'
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-except KeyboardInterrupt:
-    print('\nAdios.!')
-    GPIO.cleanup()
-    clear()
-
-except OSError:  # Open failed
-    print('Error--> ', OSError)
-    logger.error(OSError)
-except SystemExit as e:
-    logger.error(e)
-    os._exit()
-finally:
-    # Liberar la cámara y cerrar todas las ventanas
-    cap.release()
-    cv2.destroyAllWindows()
-    sys.exit()
-
+if __name__ == "__main__":
+    main()
