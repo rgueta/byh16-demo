@@ -109,7 +109,7 @@ tzone = config['app']['timezone']
 demo = config['app']['demo']
 rotate_display = config['app']['rotate']
 openByCode = config['app']['openByCode']
-
+DoorName = config['app']['DoorName']
 
 screen_saver = 0
 version_app = config['app']['version']
@@ -700,7 +700,6 @@ def activeCode(code):
         elif code == 'boot':
             restart()
             return True
-        
         elif code == 'stop':
             stop()
             return True
@@ -716,7 +715,7 @@ def activeCode(code):
                 gate.fullCycle(4)
             else:
                 magnet.fullCycle(4)
-                
+
             showMsg(namePlace)
             return True
         else:
