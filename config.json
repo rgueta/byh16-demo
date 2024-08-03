@@ -38,7 +38,7 @@
 
 	},
     "screen" : {
-		"sc_sever_time":4000,
+		"sc_sever_time":30,
         "rs":26,
         "en":19,
         "d4":13,
