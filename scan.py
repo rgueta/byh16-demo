@@ -704,7 +704,7 @@ def activeCode(code):
             stop()
             return True
         
-        curl = url + api_valid_code + code + '/' + usr
+        curl = url + api_valid_code + code + '/' + usr + '/' + DoorName
         res = requests.get(curl)
         code = ''
 
