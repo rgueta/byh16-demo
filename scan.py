@@ -694,10 +694,6 @@ def activeCode(code):
     screen_saver = 0
 
     try:
-        # call codeEvent ----
-        #curl = url + api_codes_events + code
-        #res = requests.post(curl, json=jsonPost)
-
         if code == 'gate':
             clear()
             showMsg('Bienvenido')
