@@ -1,8 +1,9 @@
 {
     "app": {
         "version": "1.0.8",
+		"coreId": "625c1d28cc5e1b626205064f",
 		"NamePlace": "Casa Grande",
-		"DoorName": "Entrada Norte",
+		"doorName": "Entrada Norte",
         "pwd":"bytheg2024",
 		"debugging": true,
 		"show_code": true,
@@ -20,7 +21,7 @@
         "url": "http://192.168.1.184:5500/",
 		"url_": "http://100.24.58.74/",
         "api_valid_code":"api/codes/activeCode/",
-        "api_codes_events" : "api/codeEvent/new",
+        "api_codes_events" : "api/codeEvent/newJustCode/",
         "api_alerts" : "api/alerts/"
     },
     "sim":{

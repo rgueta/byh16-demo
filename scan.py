@@ -26,6 +26,7 @@ from PIL import Image # type: ignore
 from PIL import ImageDraw # type: ignore
 from PIL import ImageFont # type: ignore
 
+
 #----- logger section -----
 logging.basicConfig(filename='history.log', level=logging.ERROR, 
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -88,8 +89,6 @@ elif display_type == 'oled.128x32':
     # Draw a black filled box to clear the image.
     draw.rectangle((0,0,width,height), outline=0, fill=0)
 
-
-
 restraint = open('restraint.json')
 restraint_list = json.loads(restraint.read())
 restraint.close()
@@ -109,7 +108,7 @@ tzone = config['app']['timezone']
 demo = config['app']['demo']
 rotate_display = config['app']['rotate']
 openByCode = config['app']['openByCode']
-DoorName = config['app']['DoorName']
+doorName = config['app']['doorName']
 
 screen_saver = 0
 version_app = config['app']['version']
@@ -126,6 +125,9 @@ admin_sim = config['app']['admin_sim'].split(',')
 apn = config['sim']['apn']
 incoming_calls = config['sim']['incoming_calls']
 sc_saver_time = config['screen']['sc_sever_time']
+
+jsonPost = {'coreId':config['app']['coreId'],
+            'CoreSim': config['sim']['value'],'picId':'N/A','doorName': doorName }
 
 #decode and code verification
 acc = 0
@@ -673,18 +675,29 @@ def decode_qr(frame):
                 GPIO.output(buzzer_pin,GPIO.LOW)
 
                 screen_saver = 0
-                print("{}.- Data: '{}' | Time: '{}' | Acc-code: '{}' | Diff: '{}' "
-                    .format(str(acc),f"{qr_data:^6}", datetime.now(pytz.timezone(tzone)), acc_code, str(diff_time)))
+                outTxt = "{}.- Data: '{}' | Time: '{}' | Acc-code: '{}' | Diff: '{}' ".format(str(acc),f"{qr_data:^6}", datetime.now(pytz.timezone(tzone)), acc_code, str(diff_time))
+
+                print(outTxt)
+                regEvent(outTxt)
                 
                 activeCode(qr_data)
+
+def regEvent(line):
+    with open('outputFile.log', 'a') as f:
+        f.write(line +'\n')
 
 def activeCode(code):
     global last_capture
     last_capture = datetime.now()
     global screen_saver
+    global jsonPost
     screen_saver = 0
 
     try:
+        # call codeEvent ----
+        #curl = url + api_codes_events + code
+        #res = requests.post(curl, json=jsonPost)
+
         if code == 'gate':
             clear()
             showMsg('Bienvenido')
@@ -704,8 +717,10 @@ def activeCode(code):
             stop()
             return True
         
-        curl = url + api_valid_code + code + '/' + usr + '/' + DoorName
+        curl = url + api_valid_code + code + '/' + usr + '/' + doorName
         res = requests.get(curl)
+        print('response codeEvent: ', res)
+
         code = ''
 
         if res.status_code == 200:
