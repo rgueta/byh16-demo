@@ -518,7 +518,8 @@ def pkgListAccess():
     access = ''
     for i, item in enumerate(restraint_list['user']):
         if item['status'] == 'lock':
-            print('pkgListCodes lock: ' + item['name'])
+            if debugging:
+                print('pkgListCodes lock: ' + item['name'])
             access = access + item['name'] + '-[' + item['house'] + '],'
     return access
 
@@ -557,9 +558,10 @@ def txtJson(file, key):
             pkg_size += len(str(iitem))
 
             if (1024 - pkg_size) <= 52:
-                print('middle pkg size: ' + str(pkg_size))
-                print('send middle pkg: ', arr_send)
-                print('\n')
+                if debugging:
+                    print('middle pkg size: ' + str(pkg_size))
+                    print('send middle pkg: ', arr_send)
+                    print('\n')
                 total_size += pkg_size
                 sendSMS(arr_send, 'n')
                 sleep(10)
@@ -569,10 +571,11 @@ def txtJson(file, key):
 
         if len(str(arr_send)) > 0 :
             total_size += pkg_size
-            print('\n')
-            print('last pkg size: ' + str(pkg_size))
-            print('last pkg to send: ',arr_send)
-            print('final size: ' + str(total_size))
+            if debugging:
+                print('\n')
+                print('last pkg size: ' + str(pkg_size))
+                print('last pkg to send: ',arr_send)
+                print('final size: ' + str(total_size))
             sendSMS(arr_send, 'n')
             sleep(10)
 
@@ -596,13 +599,15 @@ def softReset():
 
 def restart():
     clear()
-    showMsg('Reiniciando..')
+    if debugging:
+        showMsg('Reiniciando..')
     cap.release()
     cv2.destroyAllWindows()
     os.execl(sys.executable, sys.executable, *sys.argv)
 
 def stop():
-    print('stop program')
+    if debugging:
+        print('stop program')
     os._exit(1)
 
 # ---  1 : by date, 2 : by duplicity
@@ -675,10 +680,10 @@ def decode_qr(frame):
                 GPIO.output(buzzer_pin,GPIO.LOW)
 
                 screen_saver = 0
-                outTxt = "{}.- Data: '{}' | Time: '{}' | Acc-code: '{}' | Diff: '{}' ".format(str(acc),f"{qr_data:^6}", datetime.now(pytz.timezone(tzone)), acc_code, str(diff_time))
-
-                print(outTxt)
-                regEvent(outTxt)
+                if debugging:
+                    outTxt = "{}.- Data: '{}' | Time: '{}' | Acc-code: '{}' | Diff: '{}' ".format(str(acc),f"{qr_data:^6}", datetime.now(pytz.timezone(tzone)), acc_code, str(diff_time))
+                    print(outTxt)
+                # regEvent(outTxt)
                 
                 activeCode(qr_data)
 
@@ -715,7 +720,8 @@ def activeCode(code):
         
         curl = url + api_valid_code + code + '/' + usr + '/' + doorName
         res = requests.get(curl)
-        print('response codeEvent: ', res)
+        if debugging:
+            print('response codeEvent: ', res)
 
         code = ''
 
@@ -1218,7 +1224,6 @@ def simResponse():
 
 
         elif '+CSQ:' in response:
-            print('Im here...')
             pos = response.index(':')
             # global response_return
             response_return = response[pos + 2: (pos + 2) + 2]
@@ -1229,7 +1234,6 @@ def simResponse():
 
             # return (response_return)
         elif '+CBC:' in response:
-            print('Im here...')
             pos = response.index(':')
             response_return = response[pos + 2: (pos + 2) + 9]
 
