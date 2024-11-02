@@ -19,7 +19,6 @@
     "api":{
         "usr":"66671fc84687bcaaf40001d0",
         "url": "http://192.168.1.184:5500/",
-		"url_": "http://100.24.58.74/",
         "api_valid_code":"api/codes/activeCode/",
         "api_codes_events" : "api/codeEvent/newJustCode/",
         "api_alerts" : "api/alerts/"
